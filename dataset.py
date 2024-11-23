@@ -210,6 +210,6 @@ if __name__ == '__main__':
         vars(args)['nmin'], vars(args)['nmax'],
         vars(args)['cmin'], vars(args)['cmax'],
         samples=vars(args)['samples'],
-        distribution=vars(args)['distribution']
+        #distribution=vars(args)['distribution']
     )
 #end

@@ -5,6 +5,37 @@ import random
 import networkx as nx
 from concorde.tsp import TSPSolver
 from redirector import Redirector
+from pulp import LpProblem, LpMinimize, LpVariable, lpSum
+
+def solve_vertex_cover(Ma):
+    """
+    Solves the Vertex Cover problem exactly using Integer Linear Programming (ILP).
+    Args:
+        Ma (numpy.ndarray): Adjacency matrix of the graph.
+
+    Returns:
+        list: List of vertices in the Vertex Cover.
+    """
+    n = Ma.shape[0]
+    
+    problem = LpProblem("Vertex_Cover", LpMinimize)
+
+    # decision variables. ex) if x_i = 1, vertex i is in the vertex cover.
+    x = {i: LpVariable(f"x_{i}", cat="Binary") for i in range(n)}
+
+    # object function
+    problem += lpSum([x[i] for i in range(n)])
+
+    # contraint: each edge is covered by at least on vertex
+    for i in range(n):
+        for j in range(i + 1, n):
+            if Ma[i, j] == 1:
+                problem += x[i] + x[j] >= 1
+
+    problem.solve()
+
+    return [i for i in range(n) if x[i].varValue == 1]
+#end
 
 def solve(Ma, Mw):
     """

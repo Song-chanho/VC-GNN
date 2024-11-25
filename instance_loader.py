@@ -16,11 +16,10 @@ class InstanceLoader(object):
     def get_instances(self, n_instances):
         for i in range(n_instances):
             # Read graph from file
-            Ma,Mw,route = read_graph(self.filenames[self.index])
-
+            Ma, vertex_cover = read_graph(self.filenames[self.index])
             # Yield two copies of the same instance
-            yield Ma,Mw,route
-            yield Ma,Mw,route
+            yield Ma, vertex_cover
+            yield Ma, vertex_cover
 
             self.index += 1
         #end
@@ -32,6 +31,7 @@ class InstanceLoader(object):
         n_instances = len(instances)
         
         # n_vertices[i]: number of vertices in the i-th instance
+        # note that instance = Ma, vertex_cover
         n_vertices  = np.array([ x[0].shape[0] for x in instances ])
         # n_edges[i]: number of edges in the i-th instance
         n_edges     = np.array([ len(np.nonzero(x[0])[0]) for x in instances ])
@@ -41,15 +41,18 @@ class InstanceLoader(object):
         total_edges     = sum(n_edges)
 
         # Compute matrices M, W, CV, CE
-        # and vectors edges_mask and route_exists
+        # and vectors edges_mask and vertex_cover_exists
+
+        #EV : Edge - vertex adjacency matrix
         EV              = np.zeros((total_edges,total_vertices))
-        W               = np.zeros((total_edges,1))
-        C               = np.zeros((total_edges,1))
+        #W               = np.zeros((total_edges,1))
+        C               = np.zeros((total_vertices,1))
+        #C               = np.zeros((total_edges,1))
 
         # Even index instances are UNSAT, odd are SAT
-        route_exists = np.array([ i%2 for i in range(n_instances) ])
+        vertex_cover_exists = np.array([ i%2 for i in range(n_instances) ])
 
-        for (i,(Ma,Mw,route)) in enumerate(instances):
+        for (i,(Ma, vertex_cover)) in enumerate(instances):
             # Get the number of vertices (n) and edges (m) in this graph
             n, m = n_vertices[i], n_edges[i]
             # Get the number of vertices (n_acc) and edges (m_acc) up until the i-th graph
@@ -59,24 +62,30 @@ class InstanceLoader(object):
             # Get the list of edges in this graph
             edges = list(zip(np.nonzero(Ma)[0], np.nonzero(Ma)[1]))
 
-            # Populate EV, W and edges_mask
+            # Populate EV
             for e,(x,y) in enumerate(edges):
                 EV[m_acc+e,n_acc+x] = 1
                 EV[m_acc+e,n_acc+y] = 1
-                W[m_acc+e] = Mw[x,y]
             #end
 
-            # Compute the cost of the optimal route
-            cost = sum([ Mw[min(x,y),max(x,y)] for (x,y) in zip(route,route[1:]+route[1:]) ]) / n
+            # Compute the cost of the optimal vertex_cover + regularization
+            cost = len(vertex_cover) / n
+            # cost = sum([ Mw[min(x,y),max(x,y)] for (x,y) in zip(vertex_cover,vertex_cover[1:]+vertex_cover[1:]) ]) / n
 
             if target_cost is None:
-                C[m_acc:m_acc+m,0] = (1-dev)*cost if i%2 == 0 else (1+dev)*cost
+                C[n_acc:n_acc+n,0] = (1-dev)*cost if i%2 == 0 else (1+dev)*cost
             else:
-                C[m_acc:m_acc+m,0] = target_cost
-            #end
+                C[n_acc:n_acc+n,0] = target_cost
+            #end            
+
+            # if target_cost is None:
+            #     C[m_acc:m_acc+m,0] = (1-dev)*cost if i%2 == 0 else (1+dev)*cost
+            # else:
+            #     C[m_acc:m_acc+m,0] = target_cost
+            # #end
         #end
 
-        return EV, W, C, route_exists, n_vertices, n_edges
+        return EV, C, vertex_cover_exists, n_vertices, n_edges
     #end
 
     def get_batches(self, batch_size, dev):

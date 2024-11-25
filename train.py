@@ -16,18 +16,18 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 def run_batch(sess, model, batch, batch_i, epoch_i, time_steps, train=False, verbose=True):
 
-    EV, W, C, route_exists, n_vertices, n_edges = batch
+    EV, C, vertex_cover_exists, n_vertices, n_edges = batch
 
     # Compute the number of problems
+    #n_vertices : ex) [3, 5, 8] first graph includes 3 vertices and so on.
     n_problems = n_vertices.shape[0]
 
     # Define feed dict
     feed_dict = {
         model['EV']: EV,
-        model['W']: W,
         model['C']: C,
         model['time_steps']: time_steps,
-        model['route_exists']: route_exists,
+        model['vertex_cover_exists']: vertex_cover_exists,
         model['n_vertices']: n_vertices,
         model['n_edges']: n_edges
     }
@@ -52,14 +52,14 @@ def run_batch(sess, model, batch, batch_i, epoch_i, time_steps, train=False, ver
             n = np.sum(n_vertices),
             m = np.sum(n_edges),
             batch_size = n_vertices.shape[0],
-            avg_sat = np.mean(route_exists),
+            avg_sat = np.mean(vertex_cover_exists),
             avg_pred = np.mean(np.round(predictions))
             ),
             flush = True
         )
     #end
 
-    return loss, acc, np.mean(route_exists), np.mean(predictions), TP, FP, TN, FN
+    return loss, acc, np.mean(vertex_cover_exists), np.mean(predictions), TP, FP, TN, FN
 #end
 
 def summarize_epoch(epoch_i, loss, acc, sat, pred, train=False):
@@ -176,7 +176,7 @@ if __name__ == '__main__':
         'conn_min': vars(args)['cmin'],
         'conn_max': vars(args)['cmax'],
         'batches_per_epoch': 128,
-        'samples': 2**15,
+        'samples': 2**12,
         'distances': vars(args)['distances']
     }
 
@@ -186,7 +186,7 @@ if __name__ == '__main__':
         'conn_min': vars(args)['cmin'],
         'conn_max': vars(args)['cmax'],
         'batches_per_epoch': 32,
-        'samples': 2**10,
+        'samples': 2**7,
         'distances': vars(args)['distances']
     }
     

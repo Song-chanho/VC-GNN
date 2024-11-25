@@ -44,6 +44,7 @@ def build_network(d):
 #     edge_initial_embeddings = edge_init_MLP(
 #     tf.zeros(tf.stack([tf.shape(EV_matrix)[0], d]), dtype=tf.float32)
 # )
+    #initial embeddings for edge in the same way of vertex embedding
     e_init = tf.get_variable(initializer=tf.random_normal((1, d)), dtype=tf.float32, name='E_init')
     edge_initial_embeddings = tf.tile(
     tf.div(e_init, tf.sqrt(tf.cast(d, tf.float32))),
@@ -111,7 +112,7 @@ def build_network(d):
     GNN['C']            = target_cost
     GNN['time_steps']   = time_steps
 
-    # Define E_vote, which will compute one logit for each edge
+    # Define V_vote, which will compute one logit for each edge
     V_vote_MLP = Mlp(
         layer_sizes = [ d for _ in range(3) ],
         activations = [ tf.nn.relu for _ in range(3) ],

@@ -101,7 +101,7 @@ def read_graph(filepath):
         while 'DIMENSION' not in line: line = f.readline();
         n = int(line.split()[1])
         Ma = np.zeros((n,n),dtype=int)
-        Mw = np.zeros((n,n),dtype=float)
+        # Mw = np.zeros((n,n),dtype=float)
 
         # Parse edges
         while 'EDGE_DATA_SECTION' not in line: line = f.readline();
@@ -112,16 +112,15 @@ def read_graph(filepath):
             line = f.readline()
         #end
 
-        # Parse edge weights
-        while 'EDGE_WEIGHT_SECTION' not in line: line = f.readline();
-        for i in range(n):
-            Mw[i,:] = [ float(x) for x in f.readline().split() ]
-        #end
+        # # Parse edge weights
+        # while 'EDGE_WEIGHT_SECTION' not in line: line = f.readline();
+        # for i in range(n):
+        #     Mw[i,:] = [ float(x) for x in f.readline().split() ]
+        # #end
 
-        # Parse tour
-        while 'TOUR_SECTION' not in line: line = f.readline();
-        route = [ int(x) for x in f.readline().split() ]
+        while 'VERTEX_COVER' not in line: line = f.readline();
+        vertex_cover = [ int(x) for x in f.readline().split() ]
 
     #end
-    return Ma,Mw,route
+    return Ma, vertex_cover
 #end

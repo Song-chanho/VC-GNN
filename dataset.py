@@ -5,7 +5,7 @@ import random
 import networkx as nx
 from concorde.tsp import TSPSolver
 from redirector import Redirector
-from pulp import LpProblem, LpMinimize, LpVariable, lpSum
+from pulp import LpProblem, LpMinimize, LpVariable, lpSum, PULP_CBC_CMD
 
 def solve_vertex_cover(Ma):
     """
@@ -31,8 +31,9 @@ def solve_vertex_cover(Ma):
         for j in range(i + 1, n):
             if Ma[i, j] == 1:
                 problem += x[i] + x[j] >= 1
-
-    problem.solve()
+                
+    solver = PULP_CBC_CMD(msg=False)
+    problem.solve(solver)
 
     return [i for i in range(n) if x[i].varValue == 1]
 #end
@@ -138,7 +139,7 @@ def create_graph(n, connectivity, distances='euc_2D', metric=True):
     # #end
 
     # Solve
-    vertex_cover = solve(Ma)
+    vertex_cover = solve_vertex_cover(Ma)
     # if route is None:
     #     raise Exception('Unsolvable')
     # #end

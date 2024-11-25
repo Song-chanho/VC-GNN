@@ -6,9 +6,10 @@ import tensorflow as tf
 
 # Define hyperparameters
 d = 64  # Embedding dimension
-learning_rate = 2e-5
+learning_rate = 1e-2
 batch_size = 4
 time_steps = 5
+num_epochs = 5  # Number of training epochs
 
 # Build the GNN model
 GNN = build_network(d)
@@ -46,20 +47,26 @@ with tf.Session() as sess:
         GNN['time_steps']: time_steps,
     }
 
-    # Run a forward pass
-    loss, acc, predictions = sess.run(
-        [GNN['loss'], GNN['acc'], GNN['predictions']],
-        feed_dict=feed_dict
-    )
+    # Training loop
+    for epoch in range(num_epochs):
+        # Run a forward pass to calculate initial loss and accuracy
+        loss, acc, predictions = sess.run(
+            [GNN['loss'], GNN['acc'], GNN['predictions']],
+            feed_dict=feed_dict
+        )
 
-    # Print results
-    print("Loss:", loss)
-    print("Accuracy:", acc)
-    print("Predictions:", predictions)
+        # Print results for the current epoch
+        print(f"Epoch {epoch + 1}")
+        print("Loss:", loss)
+        print("Accuracy:", acc)
+        print("Predictions:", predictions)
 
-    # Test the training step
-    _, updated_loss = sess.run(
-        [GNN['train_step'], GNN['loss']],
-        feed_dict=feed_dict
-    )
-    print("Updated Loss after one training step:", updated_loss)
+        # Run the training step
+        _, updated_loss = sess.run(
+            [GNN['train_step'], GNN['loss']],
+            feed_dict=feed_dict
+        )
+
+        # Print the updated loss after one training step
+        print("Updated Loss after one training step:", updated_loss)
+        print("-" * 50)  # Separator for epochs

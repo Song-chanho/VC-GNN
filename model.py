@@ -41,10 +41,14 @@ def build_network(d):
         bias_initializer = tf.zeros_initializer()
     )
     # Compute initial embeddings for edges
-    edge_initial_embeddings = edge_init_MLP(
-    tf.zeros(tf.stack([tf.shape(EV_matrix)[0], d]), dtype=tf.float32)
+#     edge_initial_embeddings = edge_init_MLP(
+#     tf.zeros(tf.stack([tf.shape(EV_matrix)[0], d]), dtype=tf.float32)
+# )
+    e_init = tf.get_variable(initializer=tf.random_normal((1, d)), dtype=tf.float32, name='E_init')
+    edge_initial_embeddings = tf.tile(
+    tf.div(e_init, tf.sqrt(tf.cast(d, tf.float32))),
+    [tf.shape(EV_matrix)[0], 1]  # Match the number of edges
 )
-    
     # All vertex embeddings are initialized with the same value, which is a trained parameter learned by the network
     total_n = tf.shape(EV_matrix)[1]
 

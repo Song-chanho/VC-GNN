@@ -10,7 +10,7 @@ def build_network(d):
 
     # Define hyperparameters
     d = d
-    learning_rate = 2e-5
+    learning_rate = 1e-5
     l2norm_scaling = 1e-10
     global_norm_gradient_clipping_ratio = 0.65
 

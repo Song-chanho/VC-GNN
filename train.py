@@ -40,7 +40,7 @@ def run_batch(sess, model, batch, batch_i, epoch_i, time_steps, train=False, ver
 
     # Run model
     loss, acc, predictions, TP, FP, TN, FN = sess.run(outputs, feed_dict = feed_dict)[-7:]
-
+    
     if verbose:
         # Print stats
         print('{train_or_test} Epoch {epoch_i} Batch {batch_i}\t|\t(n,m,batch size)=({n},{m},{batch_size})\t|\t(Loss,Acc)=({loss:.4f},{acc:.4f})\t|\tAvg. (Sat,Prediction)=({avg_sat:.4f},{avg_pred:.4f})'.format(
@@ -171,8 +171,8 @@ if __name__ == '__main__':
     save_checkpoints        = vars(args)['save']
 
     train_params = {
-        'n_min': 20,
-        'n_max': 40,
+        'n_min': 10,
+        'n_max': 20,
         'conn_min': vars(args)['cmin'],
         'conn_max': vars(args)['cmax'],
         'batches_per_epoch': 128,

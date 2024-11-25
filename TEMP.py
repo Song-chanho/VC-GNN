@@ -1,72 +1,67 @@
-import os
+
+import sys, os, argparse, time, datetime
 import numpy as np
-from instance_loader import InstanceLoader, read_graph
-from model import build_network
-import tensorflow as tf
+import random
+import networkx as nx
+from concorde.tsp import TSPSolver
+from redirector import Redirector
+from pulp import LpProblem, LpMinimize, LpVariable, lpSum, PULP_CBC_CMD
+import gurobipy as gp
+from gurobipy import GRB
 
-# Define hyperparameters
-d = 64  # Embedding dimension
-learning_rate = 1e-2
-batch_size = 4
-time_steps = 5
-num_epochs = 5  # Number of training epochs
+def solve_vertex_cover(Ma):
+    """
+    Solves the Vertex Cover problem exactly using Integer Linear Programming (ILP).
+    Args:
+        Ma (numpy.ndarray): Adjacency matrix of the graph.
 
-# Build the GNN model
-GNN = build_network(d)
+    Returns:
+        list: List of vertices in the Vertex Cover.
+    """
+    n = Ma.shape[0]
 
-# Initialize a TensorFlow session
-with tf.Session() as sess:
-    # Initialize variables
-    sess.run(tf.global_variables_initializer())
+    # Create a new Gurobi model
+    model = gp.Model("Vertex_Cover")
 
-    # Generate mock data for testing
-    num_graphs = batch_size
-    max_vertices = 10  # Maximum vertices in a graph
+    # Suppress Gurobi output (optional)
+    model.Params.OutputFlag = 0
 
-    # Mock vertex_cover_exists (labels for each graph)
-    vertex_cover_exists = np.random.randint(0, 2, size=(num_graphs,)).astype(np.float32)
+    # Decision variables: x_i = 0 or 1 (binary variables)
+    x = model.addVars(n, vtype=GRB.BINARY, name="x")
 
-    # Mock n_vertices (number of vertices per graph)
-    n_vertices = np.random.randint(1, max_vertices + 1, size=(num_graphs,)).astype(np.int32)
+    # Objective function: Minimize the total number of vertices in the vertex cover
+    model.setObjective(gp.quicksum(x[i] for i in range(n)), GRB.MINIMIZE)
 
-    # Mock EV_matrix (Edge-Vertex incidence matrix)
-    total_edges = sum(n_vertices * (n_vertices - 1) // 2)  # Assume dense graphs
-    total_vertices = sum(n_vertices)
-    EV_matrix = np.random.randint(0, 2, size=(total_edges, total_vertices)).astype(np.float32)
+    # Constraints: For each edge (i, j), at least one endpoint must be in the vertex cover
+    for i in range(n):
+        for j in range(i + 1, n):
+            if Ma[i, j] == 1:  # If there is an edge between i and j
+                model.addConstr(x[i] + x[j] >= 1, name=f"edge_{i}_{j}")
 
-    # Mock target_cost (cost per graph)
-    target_cost = np.random.random(size=(num_graphs, 1)).astype(np.float32)
+    # Solve the ILP
+    model.optimize()
 
-    # Prepare a feed dictionary
-    feed_dict = {
-        GNN['vertex_cover_exists']: vertex_cover_exists,
-        GNN['n_vertices']: n_vertices,
-        GNN['n_edges']: np.random.randint(1, total_edges + 1, size=(num_graphs,)).astype(np.int32),
-        GNN['EV']: EV_matrix,
-        GNN['C']: target_cost,
-        GNN['time_steps']: time_steps,
-    }
+    # Check if the optimization was successful
+    if model.status == GRB.OPTIMAL:
+        # Extract the solution: vertices in the vertex cover
+        vertex_cover = [i for i in range(n) if round(x[i].X) == 1]
+        return vertex_cover
+    else:
+        print("No optimal solution found!")
+        return None
+#end
 
-    # Training loop
-    for epoch in range(num_epochs):
-        # Run a forward pass to calculate initial loss and accuracy
-        loss, acc, predictions = sess.run(
-            [GNN['loss'], GNN['acc'], GNN['predictions']],
-            feed_dict=feed_dict
-        )
+# Example adjacency matrix for a simple graph
+Ma5 = np.array([
+    [0, 1, 0, 0, 0],
+    [1, 0, 1, 0, 0],
+    [0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 1, 0]
+])
 
-        # Print results for the current epoch
-        print(f"Epoch {epoch + 1}")
-        print("Loss:", loss)
-        print("Accuracy:", acc)
-        print("Predictions:", predictions)
+# Solve the Vertex Cover problem
+vertex_cover = solve_vertex_cover(Ma5
+)
 
-        # Run the training step
-        _, updated_loss = sess.run(
-            [GNN['train_step'], GNN['loss']],
-            feed_dict=feed_dict
-        )
-
-        # Print the updated loss after one training step
-        print("Updated Loss after one training step:", updated_loss)
-        print("-" * 50)  # Separator for epochs
+print("Vertex Cover:", vertex_cover)

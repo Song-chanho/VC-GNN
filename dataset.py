@@ -6,6 +6,8 @@ import networkx as nx
 from concorde.tsp import TSPSolver
 from redirector import Redirector
 from pulp import LpProblem, LpMinimize, LpVariable, lpSum, PULP_CBC_CMD
+import gurobipy as gp
+from gurobipy import GRB
 
 def solve_vertex_cover(Ma):
     """
@@ -17,69 +19,91 @@ def solve_vertex_cover(Ma):
         list: List of vertices in the Vertex Cover.
     """
     n = Ma.shape[0]
-    
-    problem = LpProblem("Vertex_Cover", LpMinimize)
 
-    # decision variables. ex) if x_i = 1, vertex i is in the vertex cover.
-    x = {i: LpVariable(f"x_{i}", cat="Binary") for i in range(n)}
+    model = gp.Model("Vertex_Cover")
+    model.Params.OutputFlag = 0
 
-    # object function
-    problem += lpSum([x[i] for i in range(n)])
+    # Decision variables: x_i = 0 or 1 (binary variables)
+    x = model.addVars(n, vtype=GRB.BINARY, name="x")
 
-    # contraint: each edge is covered by at least on vertex
+    # Objective function: Minimize the total number of vertices in the vertex cover
+    model.setObjective(gp.quicksum(x[i] for i in range(n)), GRB.MINIMIZE)
+
+    # Constraints: For each edge (i, j), at least one endpoint must be in the vertex cover
     for i in range(n):
         for j in range(i + 1, n):
-            if Ma[i, j] == 1:
-                problem += x[i] + x[j] >= 1
-                
-    solver = PULP_CBC_CMD(msg=False)
-    problem.solve(solver)
+            if Ma[i, j] == 1:  # If there is an edge between i and j
+                model.addConstr(x[i] + x[j] >= 1, name=f"edge_{i}_{j}")
 
-    return [i for i in range(n) if x[i].varValue == 1]
+    # Solve the ILP
+    model.optimize()
+    vertex_cover = [i for i in range(n) if round(x[i].X) == 1]
+    return vertex_cover
 #end
+#     n = Ma.shape[0]
+    
+#     problem = LpProblem("Vertex_Cover", LpMinimize)
 
-def solve(Ma, Mw):
-    """
-        Invokes Concorde to solve a TSP instance
+#     # decision variables. ex) if x_i = 1, vertex i is in the vertex cover.
+#     x = {i: LpVariable(f"x_{i}", cat="Binary") for i in range(n)}
 
-        Uses Python's Redirector library to prevent Concorde from printing
-        unsufferably verbose messages
-    """
-    STDOUT = 1
-    STDERR = 2
-    redirector_stdout = Redirector(fd=STDOUT)
-    redirector_stderr = Redirector(fd=STDERR)
+#     # object function
+#     problem += lpSum([x[i] for i in range(n)])
 
-    # Write graph on a temporary file
-    write_graph(Ma,Mw,filepath='tmp',int_weights=True)
-    redirector_stderr.start()
-    redirector_stdout.start()
-    # Solve TSP on graph
-    solver = TSPSolver.from_tspfile('tmp')
-    # Get solution
-    solution = solver.solve(verbose=False)
-    redirector_stderr.stop()
-    redirector_stdout.stop()
+#     # contraint: each edge is covered by at least on vertex
+#     for i in range(n):
+#         for j in range(i + 1, n):
+#             if Ma[i, j] == 1:
+#                 problem += x[i] + x[j] >= 1
 
-    """
-        Concorde solves only symmetric TSP instances. To circumvent this, we
-        fill inexistent edges with large weights. Concretely, an inexistent
-        edge is assigned with the strictest upper limit to the cost of an
-        optimal tour, which is n (the number of nodes) times 1 (the maximum weight).
+#     solver = PULP_CBC_CMD(msg=False)
+#     problem.solve(solver)
 
-        If one of these edges is used in the optimal solution, we can deduce
-        that no valid tour exists (as just one of these edges costs more than
-        all the others combined).
+#     return [i for i in range(n) if x[i].varValue == 1]
+# #end
 
-        OBS. in this case the maximum weight 1 is multiplied by 'bins' because
-        we are converting from floating point to integers
-    """
-    if any([ Ma[i,j] == 0 for (i,j) in zip(list(solution.tour),list(solution.tour)[1:]+list(solution.tour)[:1]) ]):
-        return None
-    else:
-        return list(solution.tour)
-    #end
-#end
+# def solve(Ma, Mw):
+#     """
+#         Invokes Concorde to solve a TSP instance
+
+#         Uses Python's Redirector library to prevent Concorde from printing
+#         unsufferably verbose messages
+#     """
+#     STDOUT = 1
+#     STDERR = 2
+#     redirector_stdout = Redirector(fd=STDOUT)
+#     redirector_stderr = Redirector(fd=STDERR)
+
+#     # Write graph on a temporary file
+#     write_graph(Ma,Mw,filepath='tmp',int_weights=True)
+#     redirector_stderr.start()
+#     redirector_stdout.start()
+#     # Solve TSP on graph
+#     solver = TSPSolver.from_tspfile('tmp')
+#     # Get solution
+#     solution = solver.solve(verbose=False)
+#     redirector_stderr.stop()
+#     redirector_stdout.stop()
+
+#     """
+#         Concorde solves only symmetric TSP instances. To circumvent this, we
+#         fill inexistent edges with large weights. Concretely, an inexistent
+#         edge is assigned with the strictest upper limit to the cost of an
+#         optimal tour, which is n (the number of nodes) times 1 (the maximum weight).
+
+#         If one of these edges is used in the optimal solution, we can deduce
+#         that no valid tour exists (as just one of these edges costs more than
+#         all the others combined).
+
+#         OBS. in this case the maximum weight 1 is multiplied by 'bins' because
+#         we are converting from floating point to integers
+#     """
+#     if any([ Ma[i,j] == 0 for (i,j) in zip(list(solution.tour),list(solution.tour)[1:]+list(solution.tour)[:1]) ]):
+#         return None
+#     else:
+#         return list(solution.tour)
+#     #end
+# #end
 
 def create_graph(n, connectivity, distances='euc_2D', metric=True):
 

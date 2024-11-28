@@ -16,7 +16,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 def run_batch(sess, model, batch, batch_i, epoch_i, time_steps, train=False, verbose=True):
 
-    EV, C, vertex_cover_exists, n_vertices, n_edges = batch
+    EV, C, D, vertex_cover_exists, n_vertices, n_edges = batch
 
     # Compute the number of problems
     #n_vertices : ex) [3, 5, 8] first graph includes 3 vertices and so on.
@@ -26,6 +26,7 @@ def run_batch(sess, model, batch, batch_i, epoch_i, time_steps, train=False, ver
     feed_dict = {
         model['EV']: EV,
         model['C']: C,
+        model['D'] : D,
         model['time_steps']: time_steps,
         model['vertex_cover_exists']: vertex_cover_exists,
         model['n_vertices']: n_vertices,
@@ -33,6 +34,7 @@ def run_batch(sess, model, batch, batch_i, epoch_i, time_steps, train=False, ver
     }
 
     if train:
+        # gradients = tf.gradients(model['loss'], tf.trainable_variables()) #TOdo 삭제
         outputs = [model['train_step'], model['loss'], model['acc'], model['predictions'], model['TP'], model['FP'], model['TN'], model['FN']]
     else:
         outputs = [model['loss'], model['acc'], model['predictions'], model['TP'], model['FP'], model['TN'], model['FN']]
@@ -40,7 +42,17 @@ def run_batch(sess, model, batch, batch_i, epoch_i, time_steps, train=False, ver
 
     # Run model
     loss, acc, predictions, TP, FP, TN, FN = sess.run(outputs, feed_dict = feed_dict)[-7:]
-    
+
+    #TODO 위에잇는걸로 할것
+    # result = sess.run(outputs, feed_dict=feed_dict)
+    # loss, acc, predictions, TP, FP, TN, FN = result[1:8]
+
+    # if train:
+    #     gradients_val = result[8]
+        #TODO 삭제 그래디언트 출력
+        # for grad, var in zip(gradients_val, tf.trainable_variables()):
+        #     print(f"Variable: {var.name}, Gradient mean: {np.mean(grad)}, Gradient std: {np.std(grad)}")
+
     if verbose:
         # Print stats
         print('{train_or_test} Epoch {epoch_i} Batch {batch_i}\t|\t(n,m,batch size)=({n},{m},{batch_size})\t|\t(Loss,Acc)=({loss:.4f},{acc:.4f})\t|\tAvg. (Sat,Prediction)=({avg_sat:.4f},{avg_pred:.4f})'.format(
@@ -115,8 +127,8 @@ if __name__ == '__main__':
     parser.add_argument('-load_from', default=None, help='Load weights from this path')
     parser.add_argument('--save', const=True, default=False, action='store_const', help='Save model?')
     parser.add_argument('-distances', default='euc_2D', help='What type of distances? (euc_2D or random)')
-    parser.add_argument('-cmin', default=1, type=float, help='Min. connectivity')
-    parser.add_argument('-cmax', default=1, type=float, help='Max. connectivity')
+    parser.add_argument('-cmin', default=0.1, type=float, help='Min. connectivity')
+    parser.add_argument('-cmax', default=0.3, type=float, help='Max. connectivity')
 
     # Parse arguments from command line
     args = parser.parse_args()
@@ -171,12 +183,12 @@ if __name__ == '__main__':
     save_checkpoints        = vars(args)['save']
 
     train_params = {
-        'n_min': 10,
-        'n_max': 20,
+        'n_min': 20,
+        'n_max': 40,
         'conn_min': vars(args)['cmin'],
         'conn_max': vars(args)['cmax'],
         'batches_per_epoch': 128,
-        'samples': 2**12,
+        'samples': 2**15,
         'distances': vars(args)['distances']
     }
 
@@ -186,7 +198,7 @@ if __name__ == '__main__':
         'conn_min': vars(args)['cmin'],
         'conn_max': vars(args)['cmax'],
         'batches_per_epoch': 32,
-        'samples': 2**7,
+        'samples': 2**10,
         'distances': vars(args)['distances']
     }
     

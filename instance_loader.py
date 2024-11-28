@@ -16,10 +16,10 @@ class InstanceLoader(object):
     def get_instances(self, n_instances):
         for i in range(n_instances):
             # Read graph from file
-            Ma, vertex_cover = read_graph(self.filenames[self.index])
+            Ma, vertex_cover, vertex_degrees = read_graph(self.filenames[self.index])
             # Yield two copies of the same instance
-            yield Ma, vertex_cover
-            yield Ma, vertex_cover
+            yield Ma, vertex_cover, vertex_degrees
+            yield Ma, vertex_cover, vertex_degrees
 
             self.index += 1
         #end
@@ -45,14 +45,17 @@ class InstanceLoader(object):
 
         #EV : Edge - vertex adjacency matrix
         EV              = np.zeros((total_edges,total_vertices))
+        D               = np.zeros((total_vertices,1))
         #W               = np.zeros((total_edges,1))
+        ######################################################################## C is defined in each instance #######################
         C               = np.zeros((total_vertices,1))
+        # C               = np.zeros((total_vertices,1))
         #C               = np.zeros((total_edges,1))
 
         # Even index instances are UNSAT, odd are SAT
         vertex_cover_exists = np.array([ i%2 for i in range(n_instances) ])
 
-        for (i,(Ma, vertex_cover)) in enumerate(instances):
+        for (i,(Ma, vertex_cover, vertex_degrees)) in enumerate(instances):
             # Get the number of vertices (n) and edges (m) in this graph
             n, m = n_vertices[i], n_edges[i]
             # Get the number of vertices (n_acc) and edges (m_acc) up until the i-th graph
@@ -67,11 +70,15 @@ class InstanceLoader(object):
                 EV[m_acc+e,n_acc+x] = 1
                 EV[m_acc+e,n_acc+y] = 1
             #end
-
-            # Compute the cost of the optimal vertex_cover + regularization
+            # Compute the cost of the optimal vertex_cover
             cost = len(vertex_cover) / n
             # cost = sum([ Mw[min(x,y),max(x,y)] for (x,y) in zip(vertex_cover,vertex_cover[1:]+vertex_cover[1:]) ]) / n
 
+            # if target_cost is None:
+            #     C[i] = (1-dev)*cost if i%2 == 0 else (1+dev)*cost
+            # else:
+            #     C[i] = target_cost
+            # #end      
             if target_cost is None:
                 C[n_acc:n_acc+n,0] = (1-dev)*cost if i%2 == 0 else (1+dev)*cost
             else:
@@ -83,9 +90,10 @@ class InstanceLoader(object):
             # else:
             #     C[m_acc:m_acc+m,0] = target_cost
             # #end
+            for v, degree in enumerate(vertex_degrees):
+                D[n_acc + v, 0] = degree
         #end
-
-        return EV, C, vertex_cover_exists, n_vertices, n_edges
+        return EV, C, D, vertex_cover_exists, n_vertices, n_edges
     #end
 
     def get_batches(self, batch_size, dev):
@@ -126,10 +134,11 @@ def read_graph(filepath):
         # for i in range(n):
         #     Mw[i,:] = [ float(x) for x in f.readline().split() ]
         # #end
-
+        while 'VERTEX_DEGREE' not in line: line = f.readline();
+        vertex_degrees = [float(x) for x in f.readline().split()]
         while 'VERTEX_COVER' not in line: line = f.readline();
         vertex_cover = [ int(x) for x in f.readline().split() ]
 
     #end
-    return Ma, vertex_cover
+    return Ma, vertex_cover, vertex_degrees
 #end

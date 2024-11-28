@@ -1,7 +1,6 @@
 
 import sys, os
 import tensorflow as tf
-
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from graphnn import GraphNN
 from mlp import Mlp
@@ -23,6 +22,7 @@ def build_network(d):
     EV_matrix   = tf.placeholder( tf.float32, shape = (None,None), name = "EV" )
     # Placeholder for the column matrix of edge weights
     # edge_weight = tf.placeholder( tf.float32, shape = (None,1), name = "edge_weight" )
+    vertex_degree = tf.placeholder(tf.float32, shape=(None, 1), name="vertex_degree")
     # Placeholder for vertex_cover target costs (one per problem)
     target_cost = tf.placeholder( tf.float32, shape = (None,1), name = "target_cost" )
     # Placeholder for the number of timesteps the GNN is to run for
@@ -31,34 +31,55 @@ def build_network(d):
     # Define a MLP to compute an initial embedding for each edge, given its
     # weight and the target cost of the corresponding instance
     ###########################################################check###########################################################################
-    edge_init_MLP = Mlp(
-        layer_sizes = [ d/8, d/4, d/2 ],
-        activations = [ tf.nn.relu for _ in range(3) ],
-        output_size = d,
-        name = 'E_init_MLP',
-        name_internal_layers = True,
-        kernel_initializer = tf.contrib.layers.xavier_initializer(),
-        bias_initializer = tf.zeros_initializer()
-    )
+    # edge_init_MLP = Mlp(
+    #     layer_sizes = [ d/8, d/4, d/2 ],
+    #     activations = [ tf.nn.relu for _ in range(3) ],
+    #     output_size = d,
+    #     name = 'E_init_MLP',
+    #     name_internal_layers = True,
+    #     kernel_initializer = tf.contrib.layers.xavier_initializer(),
+    #     bias_initializer = tf.zeros_initializer()
+    # )
     # Compute initial embeddings for edges
-#     edge_initial_embeddings = edge_init_MLP(
-#     tf.zeros(tf.stack([tf.shape(EV_matrix)[0], d]), dtype=tf.float32)
+    #edge_initial_embeddings = edge_init_MLP(tf.concat([ edge_weight, target_cost ], axis = 1))
 # )
-    #initial embeddings for edge in the same way of vertex embedding
+#     #initial embeddings for edge in the same way of vertex embedding
+
+    # 엣지 가중치와 그래프 단위 비용을 결합하여 초기화
+    # expanded_target_cost = tf.gather(target_cost, edge_to_graph_map)  # target_cost를 엣지 단위로 확장
+    # edge_initial_embeddings = edge_init_MLP(tf.concat([edge_weight, expanded_target_cost], axis=1))
+
+    # All vertex embeddings are initialized with the same value, which is a trained parameter learned by the network
     e_init = tf.get_variable(initializer=tf.random_normal((1, d)), dtype=tf.float32, name='E_init')
     edge_initial_embeddings = tf.tile(
     tf.div(e_init, tf.sqrt(tf.cast(d, tf.float32))),
     [tf.shape(EV_matrix)[0], 1]  # Match the number of edges
 )
-    # All vertex embeddings are initialized with the same value, which is a trained parameter learned by the network
+
     total_n = tf.shape(EV_matrix)[1]
 
-    v_init = tf.get_variable(initializer=tf.random_normal((1,d)), dtype=tf.float32, name='V_init')
-    vertex_initial_embeddings = tf.tile(
-        tf.div(v_init, tf.sqrt(tf.cast(d, tf.float32))),
-        [total_n, 1]
+    # v_init = tf.get_variable(initializer=tf.random_normal((1,d)), dtype=tf.float32, name='V_init')
+    # vertex_initial_embeddings = tf.tile(
+    #     tf.div(v_init, tf.sqrt(tf.cast(d, tf.float32))),
+    #     [total_n, 1]
+    # )
+
+
+    # Vertex 초기화
+    vertex_init_MLP = Mlp(
+        layer_sizes=[d // 8, d // 4, d // 2],
+        activations=[tf.nn.relu for _ in range(3)],
+        output_size=d,
+        name='V_init_MLP',
+        name_internal_layers=True,
+        kernel_initializer=tf.contrib.layers.xavier_initializer(),
+        bias_initializer=tf.zeros_initializer()
     )
 
+    vertex_initial_embeddings = vertex_init_MLP(tf.concat([ vertex_degree, target_cost ], axis = 1))
+
+
+    ###########################################################check###########################################################################
     # Define GNN dictionary
     GNN = {}
 
@@ -108,7 +129,7 @@ def build_network(d):
     GNN['n_vertices']   = n_vertices
     GNN['n_edges']      = n_edges
     GNN['EV']           = EV_matrix
-    # GNN['W']            = edge_weight
+    GNN['D']            = vertex_degree
     GNN['C']            = target_cost
     GNN['time_steps']   = time_steps
 
@@ -125,13 +146,12 @@ def build_network(d):
     
     # Get the last embeddings
     last_states = gnn(
-      { "EV": EV_matrix, 'C': target_cost },
+      { "EV": EV_matrix, 'D': vertex_degree, 'C': target_cost },
       { "V": vertex_initial_embeddings, "E": edge_initial_embeddings },
       time_steps = time_steps
     )
     GNN["last_states"] = last_states
     V_n = last_states['V'].h
-
     # Compute a vote for each embedding
     #E_vote = tf.reshape(E_vote_MLP( tf.concat([E_n,target_cost],axis=1) ), [-1])
     V_vote = tf.reshape(V_vote_MLP(V_n), [-1])
@@ -153,6 +173,7 @@ def build_network(d):
         [0, tf.TensorArray(size=num_problems, dtype=tf.float32)]
         )[1].stack()
     # Convert logits into probabilities
+    # GNN['predictions'][i]: i번째 그래프가 Vertex Cover 조건을 만족할 확률
     GNN['predictions'] = tf.sigmoid(pred_logits)
 
     # Compute True Positives, False Positives, True Negatives, False Negatives, accuracy

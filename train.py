@@ -125,7 +125,7 @@ if __name__ == '__main__':
     parser.add_argument('-seed', type=int, default=42, help='RNG seed for Python, Numpy and Tensorflow')
     parser.add_argument('--load', const=True, default=False, action='store_const', help='Load model checkpoint?')
     parser.add_argument('-load_from', default=None, help='Load weights from this path')
-    parser.add_argument('--save', const=True, default=False, action='store_const', help='Save model?')
+    parser.add_argument('--save', const=True, default=True, action='store_const', help='Save model?')
     parser.add_argument('-distances', default='euc_2D', help='What type of distances? (euc_2D or random)')
     parser.add_argument('-cmin', default=0.1, type=float, help='Min. connectivity')
     parser.add_argument('-cmax', default=0.3, type=float, help='Max. connectivity')

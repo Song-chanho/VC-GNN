@@ -23,7 +23,7 @@ def build_network(d):
     # Placeholder for the column matrix of edge weights
     # edge_weight = tf.placeholder( tf.float32, shape = (None,1), name = "edge_weight" )
     vertex_degree = tf.placeholder(tf.float32, shape=(None, 1), name="vertex_degree")
-    # Placeholder for vertex_cover target costs (one per problem)
+    # Placeholder for vertex_cover target costs (one per problem)git p
     target_cost = tf.placeholder( tf.float32, shape = (None,1), name = "target_cost" )
     # Placeholder for the number of timesteps the GNN is to run for
     time_steps  = tf.placeholder( tf.int32, shape = (), name = "time_steps" )

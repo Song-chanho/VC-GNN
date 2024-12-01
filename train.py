@@ -120,7 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', default=64, type=int, help='Embedding size for vertices and edges')
     parser.add_argument('-timesteps', default=32, type=int, help='# Timesteps')
     parser.add_argument('-dev', default=0.02, type=float, help='Target cost deviation')
-    parser.add_argument('-epochs', default=100, type=int, help='Training epochs')
+    parser.add_argument('-epochs', default=1000, type=int, help='Training epochs')
     parser.add_argument('-batchsize', default=8, type=int, help='Batch size')
     parser.add_argument('-seed', type=int, default=42, help='RNG seed for Python, Numpy and Tensorflow')
     parser.add_argument('--load', const=True, default=False, action='store_const', help='Load model checkpoint?')

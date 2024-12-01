@@ -9,7 +9,7 @@ def build_network(d):
 
     # Define hyperparameters
     d = d
-    learning_rate = 1e-5
+    learning_rate = 2e-5
     l2norm_scaling = 1e-10
     global_norm_gradient_clipping_ratio = 0.65
 
@@ -35,25 +35,7 @@ def build_network(d):
     #     layer_sizes = [ d/8, d/4, d/2 ],
     #     activations = [ tf.nn.relu for _ in range(3) ],
     #     output_size = d,
-    #     name = 'E_init_MLP',
-    #     name_internal_layers = True,
-    #     kernel_initializer = tf.contrib.layers.xavier_initializer(),
-    #     bias_initializer = tf.zeros_initializer()
-    # )
-    # Compute initial embeddings for edges
-    #edge_initial_embeddings = edge_init_MLP(tf.concat([ edge_weight, target_cost ], axis = 1))
-# )
-#     #initial embeddings for edge in the same way of vertex embedding
-
-    # 엣지 가중치와 그래프 단위 비용을 결합하여 초기화
-    # expanded_target_cost = tf.gather(target_cost, edge_to_graph_map)  # target_cost를 엣지 단위로 확장
-    # edge_initial_embeddings = edge_init_MLP(tf.concat([edge_weight, expanded_target_cost], axis=1))
-
-    # All vertex embeddings are initialized with the same value, which is a trained parameter learned by the network
-    e_init = tf.get_variable(initializer=tf.random_normal((1, d)), dtype=tf.float32, name='E_init')
-    edge_initial_embeddings = tf.tile(
-    tf.div(e_init, tf.sqrt(tf.cast(d, tf.float32))),
-    [tf.shape(EV_matrix)[0], 1]  # Match the number of edges
+    #     name = 'E_init_MLP',e(EV_matrix)[0], 1]  # Match the number of edges
 )
 
     total_n = tf.shape(EV_matrix)[1]

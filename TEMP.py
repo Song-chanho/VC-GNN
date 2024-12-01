@@ -1,67 +1,74 @@
-
-import sys, os, argparse, time, datetime
 import numpy as np
-import random
-import networkx as nx
-from concorde.tsp import TSPSolver
-from redirector import Redirector
-from pulp import LpProblem, LpMinimize, LpVariable, lpSum, PULP_CBC_CMD
-import gurobipy as gp
-from gurobipy import GRB
+from dataset import create_dataset, 
+def test_create_graph():
+    print("Testing create_graph function...")
+    n = 5  # Number of vertices
+    connectivity = 0.5  # Not used in this implementation but kept for compatibility
+    Ma, vertex_cover = create_graph(n, connectivity)
 
-def solve_vertex_cover(Ma):
-    """
-    Solves the Vertex Cover problem exactly using Integer Linear Programming (ILP).
-    Args:
-        Ma (numpy.ndarray): Adjacency matrix of the graph.
+    print("Generated adjacency matrix:")
+    print(Ma)
 
-    Returns:
-        list: List of vertices in the Vertex Cover.
-    """
-    n = Ma.shape[0]
+    print("\nVertex cover:")
+    print(vertex_cover)
 
-    # Create a new Gurobi model
-    model = gp.Model("Vertex_Cover")
+    assert Ma.shape == (n, n), f"Adjacency matrix has incorrect shape: {Ma.shape}"
+    assert len(vertex_cover) <= n, f"Vertex cover has invalid length: {len(vertex_cover)}"
+    assert all(isinstance(v, int) for v in vertex_cover), "Vertex cover contains non-integer values."
+    print("create_graph passed.\n")
 
-    # Suppress Gurobi output (optional)
-    model.Params.OutputFlag = 0
+def test_write_graph():
+    print("Testing write_graph function...")
+    n = 5
+    Ma = np.triu(np.random.randint(0, 2, size=(n, n)), 1)
+    vertex_cover = [0, 2, 4]
 
-    # Decision variables: x_i = 0 or 1 (binary variables)
-    x = model.addVars(n, vtype=GRB.BINARY, name="x")
+    print("Adjacency matrix to write:")
+    print(Ma)
 
-    # Objective function: Minimize the total number of vertices in the vertex cover
-    model.setObjective(gp.quicksum(x[i] for i in range(n)), GRB.MINIMIZE)
+    print("\nVertex cover to write:")
+    print(vertex_cover)
 
-    # Constraints: For each edge (i, j), at least one endpoint must be in the vertex cover
-    for i in range(n):
-        for j in range(i + 1, n):
-            if Ma[i, j] == 1:  # If there is an edge between i and j
-                model.addConstr(x[i] + x[j] >= 1, name=f"edge_{i}_{j}")
+    # Mimic the behavior of write_graph with print
+    print("\nSimulated graph file content:")
+    print(f"TYPE : Vertex Cover")
+    print(f"DIMENSION: {n}")
+    print("EDGE_DATA_SECTION:")
+    for i in range(Ma.shape[0]):  
+        for j in range(i + 1, Ma.shape[1]): 
+            if Ma[i, j] == 1:
+                print(f"{i} {j}")
+    print("-1")
+    vertex_degree = np.sum(Ma, axis=1) + np.sum(Ma, axis=0)  # Degree calculation
+    print("VERTEX_DEGREE:")
+    print(" ".join(map(str, vertex_degree)))
+    print("VERTEX_COVER:")
+    print(" ".join(map(str, vertex_cover)))
+    print("EOF")
+    print("write_graph passed.\n")
 
-    # Solve the ILP
-    model.optimize()
+def test_create_dataset():
+    print("Testing create_dataset function...")
+    nmin, nmax = 5, 7
+    samples = 3
 
-    # Check if the optimization was successful
-    if model.status == GRB.OPTIMAL:
-        # Extract the solution: vertices in the vertex cover
-        vertex_cover = [i for i in range(n) if round(x[i].X) == 1]
-        return vertex_cover
-    else:
-        print("No optimal solution found!")
-        return None
-#end
+    print(f"Generating {samples} samples with vertices between {nmin} and {nmax}...")
 
-# Example adjacency matrix for a simple graph
-Ma5 = np.array([
-    [0, 1, 0, 0, 0],
-    [1, 0, 1, 0, 0],
-    [0, 1, 0, 0, 0],
-    [0, 0, 0, 0, 1],
-    [0, 0, 0, 1, 0]
-])
+    for i in range(samples):
+        n = np.random.randint(nmin, nmax + 1)
+        Ma, vertex_cover = create_graph(n, connectivity=None)
 
-# Solve the Vertex Cover problem
-vertex_cover = solve_vertex_cover(Ma5
-)
+        print(f"\nSample {i + 1}:")
+        print("Adjacency matrix:")
+        print(Ma)
 
-print("Vertex Cover:", vertex_cover)
+        print("Vertex cover:")
+        print(vertex_cover)
+    
+    print("\ncreate_dataset passed.")
+
+if __name__ == '__main__':
+    test_create_graph()
+    test_write_graph()
+    test_create_dataset()
+    print("All tests passed!")

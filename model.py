@@ -9,7 +9,7 @@ def build_network(d):
 
     # Define hyperparameters
     d = d
-    learning_rate =2e-5
+    learning_rate = 2e-5
     l2norm_scaling = 1e-10
     global_norm_gradient_clipping_ratio = 0.65
 
@@ -23,7 +23,7 @@ def build_network(d):
     # Placeholder for the column matrix of edge weights
     # edge_weight = tf.placeholder( tf.float32, shape = (None,1), name = "edge_weight" )
     vertex_degree = tf.placeholder(tf.float32, shape=(None, 1), name="vertex_degree")
-    # Placeholder for vertex_cover target costs (one per problem)git p
+    # Placeholder for vertex_cover target costs (one per problem)
     target_cost = tf.placeholder( tf.float32, shape = (None,1), name = "target_cost" )
     # Placeholder for the number of timesteps the GNN is to run for
     time_steps  = tf.placeholder( tf.int32, shape = (), name = "time_steps" )
@@ -36,9 +36,10 @@ def build_network(d):
     #     activations = [ tf.nn.relu for _ in range(3) ],
     #     output_size = d,
     #     name = 'E_init_MLP',e(EV_matrix)[0], 1]  # Match the number of edges
-)
-
-    total_n = tf.shape(EV_matrix)[1]
+    e_init = tf.get_variable(initializer=tf.random_normal((1, d)), dtype=tf.float32, name='E_init')
+    edge_initial_embeddings = tf.tile(
+    tf.div(e_init, tf.sqrt(tf.cast(d, tf.float32))),
+    [tf.shape(EV_matrix)[0], 1] )
 
     # v_init = tf.get_variable(initializer=tf.random_normal((1,d)), dtype=tf.float32, name='V_init')
     # vertex_initial_embeddings = tf.tile(
